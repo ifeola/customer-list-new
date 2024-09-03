@@ -5,7 +5,6 @@ const form = document.querySelector('form');
 const formContainer = document.querySelector('.form-container');
 const submitBtn = document.querySelector('.submit');
 const tbody = document.querySelector('tbody');
-// let checkList = Array.from(tbody?.querySelectorAll('input[type="checkbox"]') as NodeListOf<HTMLInputElement>);
 const headerCheck = document.querySelector('thead input');
 const headerEl = document.querySelector('header');
 class CustomerObj {
@@ -87,7 +86,13 @@ class UI {
             headerCheck.checked = false;
         }
     }
-    static addCustomer(name, email, company, date, number, status, id) {
+    static getCustomers() {
+        let customers = Store.getData();
+        customers.forEach(customer => {
+            UI.addCustomer(customer);
+        });
+    }
+    static addCustomer(customer) {
         const tr = document.createElement('tr');
         tr.innerHTML = `
       <td>
@@ -98,13 +103,13 @@ class UI {
           </svg>
         </label>
       </td>
-      <td class="profile"><span class="customer-name">${name}</span
-      ><span class="customer-email">${email}</span></td>
-      <td>${company}</td>
-      <td>${number}</td>
-      <td><span class="status ${status.toLowerCase()}">${status}</span></td>
-      <td>${date}</td>
-      <td>${id}</td>
+      <td class="profile"><span class="customer-name">${customer.name}</span
+      ><span class="customer-email">${customer.email}</span></td>
+      <td>${customer.company}</td>
+      <td>${customer.number}</td>
+      <td><span class="status ${customer.status.toLowerCase()}">${customer.status}</span></td>
+      <td>${customer.date}</td>
+      <td>${customer.id}</td>
       <td class="menu-bg">
         <button class="menu">
           <svg
@@ -177,6 +182,23 @@ class UI {
         UI.allChecked();
     }
 }
+class Store {
+    static getData() {
+        let customersObj;
+        if (localStorage.getItem("customersObj") === null) {
+            customersObj = [];
+        }
+        else {
+            customersObj = JSON.parse(localStorage.getItem('customersObj'));
+        }
+        return customersObj;
+    }
+    static addCustomer(customer) {
+        const customersObj = Store.getData();
+        customersObj.push(customer);
+        localStorage.setItem("customersObj", JSON.stringify(customersObj));
+    }
+}
 headerEl.addEventListener('click', (e) => {
     // Show form
     if (e.target === null)
@@ -186,7 +208,7 @@ headerEl.addEventListener('click', (e) => {
     // Remove checked List
     UI.deleteChecked(target);
 });
-// showFormBtn.addEventListener('click', UI.showForm);
+document.addEventListener('DOMContentLoaded', UI.getCustomers);
 hideFormBtn.addEventListener('click', UI.hideForm);
 form === null || form === void 0 ? void 0 : form.addEventListener('submit', (e) => {
     e.preventDefault();
@@ -202,12 +224,19 @@ form === null || form === void 0 ? void 0 : form.addEventListener('submit', (e) 
     // Add ID
     let id = Math.ceil(Math.random() * 10000);
     const IDCount = id.toString().split("");
-    do {
+    while (IDCount.length < 4) {
         id = Math.ceil(Math.random() * 10000);
-    } while ((IDCount.length < 4));
+    }
     // Add customer to UI
     let customer = new CustomerObj(nameInput.value, emailInput.value, companyInput.value, dateInput.value, numberInput.value, status, id);
-    UI.addCustomer(nameInput.value, emailInput.value, companyInput.value, dateInput.value, numberInput.value, status, id);
+    UI.addCustomer(customer);
+    Store.addCustomer(customer);
+    // Clear input elements
+    nameInput.value = "";
+    emailInput.value = "";
+    companyInput.value = "";
+    dateInput.value = "";
+    numberInput.value = "";
     // Hide form after submitting
     UI.hideForm();
 });

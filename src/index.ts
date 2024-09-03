@@ -4,7 +4,6 @@ const form = document.querySelector('form');
 const formContainer = document.querySelector('.form-container') as HTMLDivElement;
 const submitBtn = document.querySelector('.submit') as HTMLButtonElement;
 const tbody = document.querySelector('tbody'); 
-// let checkList = Array.from(tbody?.querySelectorAll('input[type="checkbox"]') as NodeListOf<HTMLInputElement>);
 const headerCheck = document.querySelector('thead input') as HTMLInputElement;
 const headerEl = document.querySelector('header') as HTMLElement;
 
@@ -111,7 +110,15 @@ class UI{
     }
   }
 
-  static addCustomer(name:string, email:string, company:string, date: string, number:string, status: string, id: number){
+  static getCustomers() {
+    let customers: CustomerObj[] = Store.getData();
+    
+    customers.forEach(customer => {
+      UI.addCustomer(customer);
+    })
+  }
+
+  static addCustomer(customer: CustomerObj){
     const tr = document.createElement('tr') as HTMLTableRowElement;
     tr.innerHTML = `
       <td>
@@ -122,13 +129,13 @@ class UI{
           </svg>
         </label>
       </td>
-      <td class="profile"><span class="customer-name">${name}</span
-      ><span class="customer-email">${email}</span></td>
-      <td>${company}</td>
-      <td>${number}</td>
-      <td><span class="status ${status.toLowerCase()}">${status}</span></td>
-      <td>${date}</td>
-      <td>${id}</td>
+      <td class="profile"><span class="customer-name">${customer.name}</span
+      ><span class="customer-email">${customer.email}</span></td>
+      <td>${customer.company}</td>
+      <td>${customer.number}</td>
+      <td><span class="status ${customer.status.toLowerCase()}">${customer.status}</span></td>
+      <td>${customer.date}</td>
+      <td>${customer.id}</td>
       <td class="menu-bg">
         <button class="menu">
           <svg
@@ -202,6 +209,26 @@ class UI{
   }
 }
 
+class Store{
+  static getData() {
+    let customersObj: CustomerObj[];
+
+    if (localStorage.getItem("customersObj") === null) {
+      customersObj = [];
+    } else {
+      customersObj = JSON.parse(localStorage.getItem('customersObj')!);
+    }
+    return customersObj;
+  }
+
+  static addCustomer(customer: CustomerObj) {
+    
+    const customersObj = Store.getData();
+    customersObj.push(customer);
+    localStorage.setItem("customersObj", JSON.stringify(customersObj));
+  }
+}
+
 
 headerEl.addEventListener('click', (e: Event) => {
   // Show form
@@ -213,7 +240,7 @@ headerEl.addEventListener('click', (e: Event) => {
   UI.deleteChecked(target)
 })
 
-// showFormBtn.addEventListener('click', UI.showForm);
+document.addEventListener('DOMContentLoaded', UI.getCustomers);
 hideFormBtn.addEventListener('click', UI.hideForm);
 
 form?.addEventListener('submit', (e: Event) => {
@@ -233,16 +260,22 @@ form?.addEventListener('submit', (e: Event) => {
   // Add ID
   let id: number = Math.ceil(Math.random() * 10000);
   const IDCount = id.toString().split("");
-  do {
+  while (IDCount.length < 4) {
     id = Math.ceil(Math.random() * 10000);
-  } while ((IDCount.length < 4));
+  } 
 
   // Add customer to UI
   let customer = new CustomerObj(nameInput.value, emailInput.value,
     companyInput.value, dateInput.value, numberInput.value, status, id);
-  UI.addCustomer(nameInput.value, emailInput.value, companyInput.value,
-    dateInput.value, numberInput.value, status, id)
+  UI.addCustomer(customer);
+  Store.addCustomer(customer);
   
+  // Clear input elements
+  nameInput.value = "";
+  emailInput.value = "";
+  companyInput.value = ""
+  dateInput.value = ""
+  numberInput.value = ""
 
   // Hide form after submitting
   UI.hideForm()
