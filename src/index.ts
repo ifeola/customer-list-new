@@ -7,7 +7,6 @@ const tbody = document.querySelector('tbody');
 const headerCheck = document.querySelector('thead input') as HTMLInputElement;
 const headerEl = document.querySelector('header') as HTMLElement;
 
-
 type Customer = {
   name: string;
   email: string;
@@ -16,6 +15,7 @@ type Customer = {
   company: string;
   status: string;
   id: number;
+  idAsString: string;
 }
 
 class CustomerObj {
@@ -26,9 +26,10 @@ class CustomerObj {
   company: string;
   status: string;
   id: number;
+  idAsString: string;
 
   constructor(name: string, email: string, number: string, date: string,
-    company: string, status: string, id: number) {
+    company: string, status: string, id: number, idAsString: string) {
     this.name = name
     this.email = email
     this.number = number
@@ -36,6 +37,7 @@ class CustomerObj {
     this.company = company
     this.id = id
     this.status = status
+    this.idAsString = idAsString
   }
 }
 
@@ -106,12 +108,11 @@ class UI{
         }
       })      
       headerCheck.checked = false;
-      
     }
   }
 
   static getCustomers() {
-    let customers: CustomerObj[] = Store.getData();
+    let customers: CustomerObj[] = Store.getCustomers();
     
     customers.forEach(customer => {
       UI.addCustomer(customer);
@@ -120,6 +121,7 @@ class UI{
 
   static addCustomer(customer: CustomerObj){
     const tr = document.createElement('tr') as HTMLTableRowElement;
+    tr.id = customer.idAsString;
     tr.innerHTML = `
       <td>
         <label class="checkbox">
@@ -210,22 +212,72 @@ class UI{
 }
 
 class Store{
-  static getData() {
-    let customersObj: CustomerObj[];
+  static getCustomers() {
+    let customers: CustomerObj[];
 
-    if (localStorage.getItem("customersObj") === null) {
-      customersObj = [];
+    if (localStorage.getItem("customers") === null) {
+      customers = [];
     } else {
-      customersObj = JSON.parse(localStorage.getItem('customersObj')!);
+      customers = JSON.parse(localStorage.getItem('customers')!);
     }
-    return customersObj;
+    return customers;
   }
 
   static addCustomer(customer: CustomerObj) {
-    
-    const customersObj = Store.getData();
-    customersObj.push(customer);
-    localStorage.setItem("customersObj", JSON.stringify(customersObj));
+    const customers = Store.getCustomers();
+    customers.push(customer);
+    localStorage.setItem("customers", JSON.stringify(customers));
+  }
+
+  static removeCustomer(target: HTMLElement) {
+    const deleteCheckedBtn = target.classList.contains('remove');
+
+    if (deleteCheckedBtn) {
+      const targetParent = target.parentElement?.parentElement?.parentElement?.parentElement;
+      if (targetParent === null || targetParent === undefined) return;
+      const targetParentId = targetParent.id;
+
+      const customers = Store.getCustomers();
+      customers.forEach((customer, index) => {
+        if (customer.idAsString === targetParentId) {          
+          customers.splice(index, 1);
+        }
+      })
+      localStorage.setItem("customers", JSON.stringify(customers));
+    }
+  }
+
+  static duplicateCustomer(target: HTMLElement) {
+    const duplicateCheckedBtn = target.classList.contains('duplicate');
+
+    if (duplicateCheckedBtn) {
+      const targetParent = target.parentElement?.parentElement?.parentElement?.parentElement;
+      if (targetParent === null || targetParent === undefined) return;
+      const targetParentId = targetParent.id;
+
+      // Generate a new ID for the object
+      let id: string | number = Math.ceil(Math.random() * 10000);
+      const IDCount = id.toString().split("");
+      while (IDCount.length < 4) {
+        id = Math.ceil(Math.random() * 10000);
+      }
+      const idAsString: string = String(id);
+      console.log(idAsString);
+
+      // get Array of Customers' Objects
+      const customers = Store.getCustomers();
+
+      // Loop through each objects to find the equivalent of the targetParent
+      customers.forEach((customer, index) => {
+        if (customer.idAsString === targetParentId) {
+          let newCustomer: CustomerObj = customer;
+          newCustomer.idAsString = idAsString;
+          newCustomer.id = id;
+          customers.push(newCustomer);
+        }
+      })
+      localStorage.setItem("customers", JSON.stringify(customers));
+    }
   }
 }
 
@@ -258,15 +310,17 @@ form?.addEventListener('submit', (e: Event) => {
   let status: string = statsArray[count];
 
   // Add ID
-  let id: number = Math.ceil(Math.random() * 10000);
+  let id: string | number = Math.ceil(Math.random() * 10000);
   const IDCount = id.toString().split("");
   while (IDCount.length < 4) {
     id = Math.ceil(Math.random() * 10000);
-  } 
+  }
+  const idAsString: string = String(id);
+  
 
   // Add customer to UI
   let customer = new CustomerObj(nameInput.value, emailInput.value,
-    companyInput.value, dateInput.value, numberInput.value, status, id);
+    companyInput.value, dateInput.value, numberInput.value, status, id, idAsString);
   UI.addCustomer(customer);
   Store.addCustomer(customer);
   
@@ -292,9 +346,11 @@ tbody?.addEventListener('click', (e: Event) => {
 
   // Delete Customer
   UI.deleteCustomer(target)
+  Store.removeCustomer(target);
 
   // Duplicate Customer
   UI.duplicateCustomer(target)
+  Store.duplicateCustomer(target)
 })
 
 headerCheck.addEventListener('click', () => {
